@@ -1,6 +1,6 @@
 Name:       aide
 Version:    0.16
-Release:    13
+Release:    14
 Summary:    Advanced Intrusion Detection Environment
 License:    GPLv2+
 URL:        http://sourceforge.net/projects/aide
@@ -54,8 +54,8 @@ mkdir -p -m0700 %{buildroot}%{_localstatedir}/lib/aide
 
 %files
 %defattr(-,root,root)
-%license COPYING
-%doc AUTHORS ChangeLog contrib/
+%license COPYING AUTHORS
+%doc ChangeLog contrib/
 %{_sbindir}/*
 %config(noreplace) %attr(0600,root,root) %{_sysconfdir}/aide.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/aide
@@ -68,7 +68,13 @@ mkdir -p -m0700 %{buildroot}%{_localstatedir}/lib/aide
 %{_mandir}/*/*
 
 %changelog
-* Sat Sep 21 2019 openEuler Buildteam <buildteam@openeuler.org> - 0.16-13 
+* Wed Oct 9 2019 openEuler Buildteam <buildteam@openeuler.org> - 0.16-14
+- Type:enhancement
+- ID:NA
+- SUG:NA
+- DESC: change the directory of AUTHORS
+
+* Sat Sep 21 2019 openEuler Buildteam <buildteam@openeuler.org> - 0.16-13
 - Type:enhancement
 - ID:NA
 - SUG:NA
