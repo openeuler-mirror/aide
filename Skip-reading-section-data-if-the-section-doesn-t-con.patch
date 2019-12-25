@@ -1,0 +1,27 @@
+From dd98dbd23770b8f8b95dc5a08ad5d5546831076a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Luk=C3=A1=C5=A1=20Jirkovsk=C3=BD?= <l.jirkovsky@gmail.com>
+Date: Fri, 8 Mar 2019 20:44:51 +0100
+Subject: [PATCH 19/20] Skip reading section data if the section doesn't
+ contain any table.
+
+Fixes floating point exception on go files.
+---
+ src/do_md.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/do_md.c b/src/do_md.c
+index 86fde8d..35c0751 100644
+--- a/src/do_md.c
++++ b/src/do_md.c
+@@ -99,7 +99,7 @@ int is_prelinked(int fd) {
+         while (!bingo && (scn = elf_nextscn(elf, scn)) != NULL) {
+                 (void) gelf_getshdr(scn, &shdr);
+ 
+-                if (shdr.sh_type != SHT_DYNAMIC)
++                if (shdr.sh_type != SHT_DYNAMIC || shdr.sh_entsize == 0)
+                         continue;
+ 
+                 while (!bingo && (data = elf_getdata (scn, data)) != NULL) {
+-- 
+2.19.1
+

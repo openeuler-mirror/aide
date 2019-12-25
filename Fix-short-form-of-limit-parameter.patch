@@ -1,0 +1,37 @@
+From 4863aa95d571c95107841aebf97d3d32aa8b3577 Mon Sep 17 00:00:00 2001
+From: Hannes von Haugwitz <hannes@vonhaugwitz.com>
+Date: Sun, 29 Oct 2017 22:16:39 +0100
+Subject: [PATCH 01/20] Fix short form of --limit parameter
+
+---
+ ChangeLog  | 3 +++
+ src/aide.c | 2 +-
+ 2 files changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index 263c438..14a3c72 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,6 @@
++2017-10-29 Hannes von Haugwitz <hannes@vonhaugwitz.com>
++	* Fix short form of --limit parameter
++
+ 2016-07-25 Hannes von Haugwitz <hannes@vonhaugwitz.com>
+ 	* Release version 0.16
+ 
+diff --git a/src/aide.c b/src/aide.c
+index f85c1b4..2971178 100644
+--- a/src/aide.c
++++ b/src/aide.c
+@@ -117,7 +117,7 @@ static int read_param(int argc,char**argv)
+   };
+ 
+   while(1){
+-    option = getopt_long(argc, argv, "hV::vc:B:A:r:iCuDE", options, &i);
++    option = getopt_long(argc, argv, "hV::vc:l:B:A:r:iCuDE", options, &i);
+     if(option==-1)
+       break;
+     switch(option)
+-- 
+2.19.1
+
