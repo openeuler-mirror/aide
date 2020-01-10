@@ -1,4 +1,5 @@
 /var/log/aide/*.log {
+	maxage 365
         weekly
         missingok
         rotate 4
