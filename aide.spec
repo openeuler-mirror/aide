@@ -1,19 +1,16 @@
 Name:       aide
 Version:    0.16
-Release:    14
+Release:    15
 Summary:    Advanced Intrusion Detection Environment
 License:    GPLv2+
 URL:        http://sourceforge.net/projects/aide
 Source0:    http://sourceforge.net/projects/aide/files/aide/%{version}/%{name}-%{version}.tar.gz
 Source1:    aide.conf
-Source2:    README.quickstart
 Source3:    aide.logrotate
 
 BuildRequires:  gcc make bison flex pcre-devel libgpg-error-devel libgcrypt-devel zlib-devel libcurl-devel
 BuildRequires:  libacl-devel libselinux-devel libattr-devel e2fsprogs-devel audit-libs-devel git
 
-Patch1:  aide-0.16rc1-man.patch
-Patch2:  aide-0.16b1-fipsfix.patch
 Patch6000:  aide-define_hash_use_gcrypt.patch
 Patch6001:  Fix-short-form-of-limit-parameter.patch
 Patch6002:  Fix-root_prefix-option.patch
@@ -39,7 +36,6 @@ make %{?_smp_mflags}
 %install
 %make_install bindir=%{_sbindir}
 install -Dpm0644 -t %{buildroot}%{_sysconfdir} %{S:1}
-install -Dpm0644 -t %{buildroot}%{_datadir}/doc/aide-help %{S:2}
 install -Dpm0644 -t %{buildroot}%{_sysconfdir}/logrotate.d/aide %{S:3}
 mkdir -p %{buildroot}%{_localstatedir}/log/aide
 mkdir -p -m0700 %{buildroot}%{_localstatedir}/lib/aide
@@ -64,10 +60,16 @@ mkdir -p -m0700 %{buildroot}%{_localstatedir}/lib/aide
 
 %files help
 %defattr(-,root,root)
-%doc NEWS README doc/manual.html README.quickstart
+%doc NEWS README doc/manual.html
 %{_mandir}/*/*
 
 %changelog
+* Fri Jan 10 2020 openEuler Buildteam <buildteam@openeuler.org> - 0.16-15
+- Type:enhancement
+- ID:NA
+- SUG:NA
+- DESC: clean code
+
 * Wed Oct 9 2019 openEuler Buildteam <buildteam@openeuler.org> - 0.16-14
 - Type:enhancement
 - ID:NA
