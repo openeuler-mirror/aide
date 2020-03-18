@@ -1,12 +1,12 @@
 Name:       aide
 Version:    0.16
-Release:    15
+Release:    16
 Summary:    Advanced Intrusion Detection Environment
 License:    GPLv2+
 URL:        http://sourceforge.net/projects/aide
 Source0:    http://sourceforge.net/projects/aide/files/aide/%{version}/%{name}-%{version}.tar.gz
 Source1:    aide.conf
-Source3:    aide.logrotate
+Source2:    aide.logrotate
 
 BuildRequires:  gcc make bison flex pcre-devel libgpg-error-devel libgcrypt-devel zlib-devel libcurl-devel
 BuildRequires:  libacl-devel libselinux-devel libattr-devel e2fsprogs-devel audit-libs-devel git
@@ -36,7 +36,7 @@ make %{?_smp_mflags}
 %install
 %make_install bindir=%{_sbindir}
 install -Dpm0644 -t %{buildroot}%{_sysconfdir} %{S:1}
-install -Dpm0644 -t %{buildroot}%{_sysconfdir}/logrotate.d/aide %{S:3}
+install -Dpm0644 %{S:2} %{buildroot}%{_sysconfdir}/logrotate.d/aide 
 mkdir -p %{buildroot}%{_localstatedir}/log/aide
 mkdir -p -m0700 %{buildroot}%{_localstatedir}/lib/aide
 
@@ -64,6 +64,12 @@ mkdir -p -m0700 %{buildroot}%{_localstatedir}/lib/aide
 %{_mandir}/*/*
 
 %changelog
+* Tue Mar 17 2020 openEuler Buildteam <buildteam@openeuler.org> - 0.16-16
+- Type:bugfix
+- ID:NA
+- SUG:NA
+- DESC: change file from /etc/logrotate.d/aide/aide.logrotate to /etc/logrotate.d/aide
+
 * Fri Jan 10 2020 openEuler Buildteam <buildteam@openeuler.org> - 0.16-15
 - Type:enhancement
 - ID:NA
