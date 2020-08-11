@@ -1,22 +1,17 @@
 Name:       aide
-Version:    0.16
-Release:    16
+Version:    0.16.2
+Release:    1
 Summary:    Advanced Intrusion Detection Environment
 License:    GPLv2+
 URL:        http://sourceforge.net/projects/aide
-Source0:    http://sourceforge.net/projects/aide/files/aide/%{version}/%{name}-%{version}.tar.gz
+Source0:    http://github.com/aide/aide/releases/download/v%{version}/%{name}-%{version}.tar.gz
 Source1:    aide.conf
 Source2:    aide.logrotate
 
 BuildRequires:  gcc make bison flex pcre-devel libgpg-error-devel libgcrypt-devel zlib-devel libcurl-devel
 BuildRequires:  libacl-devel libselinux-devel libattr-devel e2fsprogs-devel audit-libs-devel git
 
-Patch6000:  aide-define_hash_use_gcrypt.patch
-Patch6001:  Fix-short-form-of-limit-parameter.patch
-Patch6002:  Fix-root_prefix-option.patch
-Patch6003:  Add-missing-include-in-src-db.c.patch
-Patch6004:  src-do_md.c-fix-memory-leak-in-is_prelinked.patch
-Patch6005:  Skip-reading-section-data-if-the-section-doesn-t-con.patch
+Patch0:     aide-define_hash_use_gcrypt.patch
 
 %description
 AIDE (Advanced Intrusion Detection Environment, [eyd]) is a file and directory integrity checker.
@@ -64,6 +59,12 @@ mkdir -p -m0700 %{buildroot}%{_localstatedir}/lib/aide
 %{_mandir}/*/*
 
 %changelog
+* Thu Aug 6 2020 wangchen <wangchen137@huawei.com> - 0.16.2-1
+- Type:enhancement
+- ID:NA
+- SUG:NA
+- DESC: update to 0.16.2
+
 * Tue Mar 17 2020 openEuler Buildteam <buildteam@openeuler.org> - 0.16-16
 - Type:bugfix
 - ID:NA
