@@ -1,5 +1,5 @@
 Name:       aide
-Version:    0.16.2
+Version:    0.17.3
 Release:    1
 Summary:    Advanced Intrusion Detection Environment
 License:    GPLv2+
@@ -9,9 +9,7 @@ Source1:    aide.conf
 Source2:    aide.logrotate
 
 BuildRequires:  gcc make bison flex pcre-devel libgpg-error-devel libgcrypt-devel zlib-devel libcurl-devel
-BuildRequires:  libacl-devel libselinux-devel libattr-devel e2fsprogs-devel audit-libs-devel git
-
-Patch0:   aide-define_hash_use_gcrypt.patch
+BuildRequires:  libacl-devel libselinux-devel libattr-devel e2fsprogs-devel audit-libs-devel
 
 %description
 AIDE (Advanced Intrusion Detection Environment, [eyd]) is a file and directory integrity checker.
@@ -21,7 +19,7 @@ Once this database is initialized it can be used to verify the integrity of the 
 %package_help
 
 %prep
-%autosetup -n %{name}-%{version} -p1 -Sgit
+%autosetup -n %{name}-%{version} -p1
 
 %build
 %configure  --disable-static --with-config_file=%{_sysconfdir}/aide.conf --with-gcrypt --with-zlib \
@@ -55,10 +53,17 @@ mkdir -p -m0700 %{buildroot}%{_localstatedir}/lib/aide
 
 %files help
 %defattr(-,root,root)
-%doc NEWS README doc/manual.html
+%doc NEWS README
 %{_mandir}/*/*
 
 %changelog
+* Sat Jul 31 2021 zoulin <zoulin13@huawei.com> - 0.17.3-1
+- Type:enhancement
+- ID:NA
+- SUG:NA
+- DESC: update to 0.17.3;
+        delete -Sgit from %autosetup, and delete BuildRequires git
+
 * Wed Jul 29 2020 wangchen <wangchen137@huawei.com> - 0.16.2-1
 - Type:enhancement
 - ID:NA
