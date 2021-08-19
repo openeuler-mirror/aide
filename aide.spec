@@ -1,6 +1,6 @@
 Name:       aide
 Version:    0.17.3
-Release:    1
+Release:    2
 Summary:    Advanced Intrusion Detection Environment
 License:    GPLv2+
 URL:        http://sourceforge.net/projects/aide
@@ -57,6 +57,12 @@ mkdir -p -m0700 %{buildroot}%{_localstatedir}/lib/aide
 %{_mandir}/*/*
 
 %changelog
+* Thu Aug 19 2021 yixiangzhike <zhangxingliang3@huawei.com> - 0.17.3-2
+- Type:bugfix
+- ID:NA
+- SUG:NA
+- DESC: fix wrong config options in aide.conf
+
 * Sat Jul 31 2021 zoulin <zoulin13@huawei.com> - 0.17.3-1
 - Type:enhancement
 - ID:NA
