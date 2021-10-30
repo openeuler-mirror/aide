@@ -1,0 +1,345 @@
+From 7cd7a2dca5054fd86c4398b3de8a890ae0ec2eef Mon Sep 17 00:00:00 2001
+From: rpm-build <rpm-build>
+Date: Thu, 28 Oct 2021 20:37:46 +0800
+Subject: [PATCH] sm3
+
+---
+ include/db_config.h |  5 ++++-
+ include/md.h        |  7 +++++--
+ src/aide.c          |  3 ++-
+ src/commandconf.c   |  3 +++
+ src/compare_db.c    | 11 ++++++++++-
+ src/conf_yacc.y     |  3 ++-
+ src/db.c            | 11 +++++++++++
+ src/db_file.c       |  8 ++++++++
+ src/do_md.c         |  3 +++
+ src/gen_list.c      |  8 ++++++++
+ src/md.c            | 11 ++++++++++-
+ 11 files changed, 66 insertions(+), 7 deletions(-)
+
+diff --git a/include/db_config.h b/include/db_config.h
+index 7e5ff0d..a2eda1c 100644
+--- a/include/db_config.h
++++ b/include/db_config.h
+@@ -156,6 +156,7 @@ typedef enum {
+    db_allowrmfile,		/* "allowrmfile" */
+    db_sha256, 			/* "sha256",  */
+    db_sha512, 			/* "sha512",  */
++   db_sm3,                      /* "sm3",     */
+    db_whirlpool,		/* "whirlpool",  */
+    db_selinux, 			/* "selinux",  */
+    db_xattrs, 			/* "xattrs",  */
+@@ -214,9 +215,10 @@ typedef enum {
+ #define DB_WHIRLPOOL  (1LLU<<34) /* "whirlpool",  */
+ #define DB_FTYPE      (1LLU<<35) /* "file type",  */
+ #define DB_E2FSATTRS  (1LLU<<36) /* "ext2 file system attributes"  */
++#define DB_SM3        (1LLU<<37) /* "sm3"*/
+ 
+ #define DB_HASHES    (DB_MD5|DB_SHA1|DB_RMD160|DB_TIGER|DB_CRC32|DB_HAVAL| \
+-		      DB_GOST|DB_CRC32B|DB_SHA256|DB_SHA512|DB_WHIRLPOOL)
++		      DB_GOST|DB_CRC32B|DB_SHA256|DB_SHA512|DB_WHIRLPOOL|DB_SM3)
+ 
+ extern const char* db_names[db_unknown+1];
+ extern const int db_value[db_unknown+1];
+@@ -264,6 +266,7 @@ typedef struct db_line {
+ 
+   byte* sha256;
+   byte* sha512;
++  byte* sm3;
+ 
+   byte* crc32; /* MHASH only */
+   byte* haval;
+diff --git a/include/md.h b/include/md.h
+index 25b8461..925812b 100644
+--- a/include/md.h
++++ b/include/md.h
+@@ -45,10 +45,11 @@
+ 
+ #ifdef WITH_GCRYPT
+ #include <gcrypt.h>
+-#define HASH_GCRYPT_COUNT GCRY_MD_CRC32
++#define MD_SM3 326
++#define HASH_GCRYPT_COUNT MD_SM3
+ #ifndef WITH_MHASH
+ #define HASH_USE_GCRYPT (DB_MD5|DB_SHA1|DB_RMD160|DB_TIGER|DB_CRC32|\
+-                         DB_CRC32B|DB_SHA256|DB_SHA512)
++                         DB_CRC32B|DB_SHA256|DB_SHA512|DB_SM3)
+ #endif
+ #endif
+ 
+@@ -71,6 +72,7 @@
+ #define HASH_MD4_LEN 16
+ #define HASH_SHA256_LEN 32
+ #define HASH_SHA512_LEN 64
++#define HASH_SM3_LEN 32
+ #define HASH_WHIRLPOOL_LEN 64
+ #define HASH_ADLER32_LEN 4
+ #define HASH_CRC32B_LEN 4
+@@ -117,6 +119,7 @@ typedef struct md_container {
+   char md4[HASH_MD4_LEN];
+   char sha256[HASH_SHA256_LEN];
+   char sha512[HASH_SHA512_LEN];
++  char sm3[HASH_SM3_LEN];
+   char adler32[HASH_ADLER32_LEN];
+   char whirlpool[HASH_WHIRLPOOL_LEN];
+   
+diff --git a/src/aide.c b/src/aide.c
+index 2971178..bcae227 100644
+--- a/src/aide.c
++++ b/src/aide.c
+@@ -348,7 +348,7 @@ static void setdefaults_before_config()
+ 
+   conf->db_attrs = 0;
+ #if defined(WITH_MHASH) || defined(WITH_GCRYPT)
+-  conf->db_attrs |= DB_MD5|DB_TIGER|DB_HAVAL|DB_CRC32|DB_SHA1|DB_RMD160|DB_SHA256|DB_SHA512;
++  conf->db_attrs |= DB_MD5|DB_TIGER|DB_HAVAL|DB_CRC32|DB_SHA1|DB_RMD160|DB_SHA256|DB_SHA512|DB_SM3;
+ #ifdef WITH_MHASH
+   conf->db_attrs |= DB_GOST;
+ #ifdef HAVE_MHASH_WHIRLPOOL
+@@ -411,6 +411,7 @@ static void setdefaults_before_config()
+   do_groupdef("rmd160",DB_RMD160);
+   do_groupdef("sha256",DB_SHA256);
+   do_groupdef("sha512",DB_SHA512);
++  do_groupdef("sm3",DB_SM3);
+ #endif
+ #ifdef WITH_ACL
+   do_groupdef("acl",DB_ACL);
+diff --git a/src/commandconf.c b/src/commandconf.c
+index eb9e382..406c684 100644
+--- a/src/commandconf.c
++++ b/src/commandconf.c
+@@ -499,6 +499,9 @@ void update_db_out_order(DB_ATTR_TYPE attr)
+   if((attr&DB_SHA512) && (check_dboo(db_sha512)!=RETFAIL)){
+     conf->db_out_order[conf->db_out_size++]=db_sha512;
+   }
++  if((attr&DB_SM3) && (check_dboo(db_sm3)!=RETFAIL)){
++    conf->db_out_order[conf->db_out_size++]=db_sm3;
++  }
+ #ifdef WITH_ACL
+   if((attr&DB_ACL) && (check_dboo(db_acl)!=RETFAIL)){
+     conf->db_out_order[conf->db_out_size++]=db_acl;
+diff --git a/src/compare_db.c b/src/compare_db.c
+index 39b52ed..74dbf5a 100644
+--- a/src/compare_db.c
++++ b/src/compare_db.c
+@@ -93,6 +93,9 @@ const char summary_char[] = { '!' ,'l', '>', 'b', 'p', 'u', 'g', 'a', 'm', 'c',
+ };
+ 
+ const DB_ATTR_TYPE details_attributes[] = { DB_FTYPE, DB_LINKNAME, DB_SIZE, DB_SIZEG, DB_BCOUNT, DB_PERM, DB_UID, DB_GID, DB_ATIME, DB_MTIME, DB_CTIME, DB_INODE, DB_LNKCOUNT, DB_MD5, DB_SHA1, DB_RMD160, DB_TIGER, DB_SHA256, DB_SHA512
++#ifdef WITH_GCRYPT
++    , DB_SM3
++#endif
+ #ifdef WITH_MHASH
+     , DB_CRC32, DB_HAVAL, DB_GOST, DB_CRC32B, DB_WHIRLPOOL
+ #endif
+@@ -111,6 +114,9 @@ const DB_ATTR_TYPE details_attributes[] = { DB_FTYPE, DB_LINKNAME, DB_SIZE, DB_S
+ };
+ 
+ const char* details_string[] = { _("File type") , _("Lname"), _("Size"), _("Size (>)"), _("Bcount"), _("Perm"), _("Uid"), _("Gid"), _("Atime"), _("Mtime"), _("Ctime"), _("Inode"), _("Linkcount"), _("MD5"), _("SHA1"), _("RMD160"), _("TIGER"), _("SHA256"), _("SHA512")
++#ifdef WITH_GCRYPT
++    , _("SM3")
++#endif
+ #ifdef WITH_MHASH
+     , _("CRC32"), _("HAVAL"), _("GOST"), _("CRC32B"), _("WHIRLPOOL")
+ #endif
+@@ -131,7 +137,7 @@ const char* details_string[] = { _("File type") , _("Lname"), _("Size"), _("Size
+ const char* attrs_string[] = { "filename", "l", "p", "u", "g", "s", "a", "c", "m", "i", "b", "n",
+                                "md5", "sha1", "rmd160", "tiger", "crc32", "haval", "gost", "crc32b",
+                                "attr", "acl", "bsize", "rdev", "dev", "checkmask", "S", "I", "ANF",
+-                               "ARF", "sha256", "sha512", "selinux", "xattrs", "whirlpool", "ftype",
++                               "ARF", "sha256", "sha512", "sm3", "selinux", "xattrs", "whirlpool", "ftype",
+                                "e2fsattrs" };
+ 
+ #ifdef WITH_E2FSATTRS
+@@ -431,6 +437,9 @@ snprintf(*values[0], l, "%s",s);
+         easy_md(DB_TIGER,tiger,HASH_TIGER_LEN)
+         easy_md(DB_SHA256,sha256,HASH_SHA256_LEN)
+         easy_md(DB_SHA512,sha512,HASH_SHA512_LEN)
++#ifdef WITH_GCRYPT
++        easy_md(DB_SM3,sm3,HASH_SM3_LEN)
++#endif
+ #ifdef WITH_MHASH
+         easy_md(DB_CRC32,crc32,HASH_CRC32_LEN)
+         easy_md(DB_HAVAL,haval,HASH_HAVAL256_LEN)
+diff --git a/src/conf_yacc.y b/src/conf_yacc.y
+index 99d0433..7ce75cf 100644
+--- a/src/conf_yacc.y
++++ b/src/conf_yacc.y
+@@ -130,6 +130,7 @@ extern long conf_lineno;
+ %token <i> TMD5
+ %token <i> TSHA256
+ %token <i> TSHA512
++%token <i> TSM3
+ %token <i> TWHIRLPOOL
+ 
+ /* predefs */
+@@ -243,7 +244,7 @@ other : TRIGHTS { $$ =$1 ;} | TUSER {$$ =$1 ;}
+         | TSELINUX {$$ =$1 ;} | TE2FSATTRS {$$ =$1 ;};
+ 
+ hash : TTIGER { $$ =$1 ;} | TSHA1 { $$ =$1 ;} | TRMD160 { $$ =$1 ;}
+-	| TMD5 {$$ =$1 ;} | TSHA256 { $$ =$1 ;} | TSHA512 { $$ =$1 ;}
++	| TMD5 {$$ =$1 ;} | TSHA256 { $$ =$1 ;} | TSHA512 { $$ =$1 ;} | TSM3 { $$ =$1 ;}
+         | TWHIRLPOOL { $$ =$1 ;};
+ 
+ definestmt : TDEFINE TSTRING TSTRING { do_define($2,$3); };
+diff --git a/src/db.c b/src/db.c
+index 858240d..19ba970 100644
+--- a/src/db.c
++++ b/src/db.c
+@@ -87,6 +87,7 @@ const char* db_names[db_unknown+1] = {
+    "allowrmfiles",
+    "sha256",
+    "sha512",
++   "sm3",
+    "whirlpool",
+    "selinux",
+    "xattrs",
+@@ -124,6 +125,7 @@ const int db_value[db_unknown+1] = {
+    db_allowrmfile,      /* "allowrmfile" */
+    db_sha256,           /* "sha256",  */
+    db_sha512,           /* "sha512",  */
++   db_sm3,              /* "sm3",     */
+    db_whirlpool,        /* "whirlpool", */
+    db_selinux,          /* "selinux", */
+    db_xattrs,           /* "xattrs",  */
+@@ -402,6 +404,7 @@ db_line* db_char2line(char** ss,int db){
+   
+   line->sha256=NULL;
+   line->sha512=NULL;
++  line->sm3=NULL;
+   line->perm=0;
+   line->uid=0;
+   line->gid=0;
+@@ -533,6 +536,11 @@ db_line* db_char2line(char** ss,int db){
+                                 strlen(ss[(*db_order)[i]]), NULL);
+       break;
+     }
++    case db_sm3 : {
++       line->sm3=base64tobyte(ss[(*db_order)[i]],
++                                 strlen(ss[(*db_order)[i]]), NULL);
++       break;
++    }
+ #ifdef WITH_SUN_ACL
+     case db_acl : {
+       char* endp,*pos;
+@@ -867,6 +875,9 @@ void free_db_line(db_line* dl)
+   dl->filename=NULL;
+   checked_free(dl->fullpath);
+   checked_free(dl->linkname);
++#ifdef GCRYPT
++  checked_free(dl->sm3);
++#endif
+   
+ #ifdef WITH_MHASH
+   checked_free(dl->crc32);
+diff --git a/src/db_file.c b/src/db_file.c
+index 6a0f093..dcacaef 100644
+--- a/src/db_file.c
++++ b/src/db_file.c
+@@ -995,6 +995,14 @@ int db_writeline_file(db_line* line,db_config* dbconf, url_t* url){
+ 
+       break;
+     }
++    case db_sm3 : {
++      db_write_byte_base64(line->sm3,
++			   HASH_SM3_LEN,
++			   dbconf->db_out,i,
++			   DB_SM3,line->attr);
++
++      break;
++    }
+     case db_whirlpool : {
+       db_write_byte_base64(line->whirlpool,
+ 			   HASH_WHIRLPOOL_LEN,
+diff --git a/src/do_md.c b/src/do_md.c
+index 1b3b9ed..6a309b9 100644
+--- a/src/do_md.c
++++ b/src/do_md.c
+@@ -173,6 +173,9 @@ void free_hashes(db_line* dl){
+ #endif
+   free_hash(sha256);
+   free_hash(sha512);
++#ifdef WITH_GCRYPT
++  free_hash(sm3);
++#endif
+ }
+ 
+ int stat_cmp(struct AIDE_STAT_TYPE* f1,struct AIDE_STAT_TYPE* f2) {
+diff --git a/src/gen_list.c b/src/gen_list.c
+index 719e2c7..536390c 100644
+--- a/src/gen_list.c
++++ b/src/gen_list.c
+@@ -237,6 +237,9 @@ static DB_ATTR_TYPE get_changed_attributes(db_line* l1,db_line* l2) {
+     easy_md_compare(DB_TIGER,tiger,HASH_TIGER_LEN);
+     easy_md_compare(DB_SHA256,sha256,HASH_SHA256_LEN);
+     easy_md_compare(DB_SHA512,sha512,HASH_SHA512_LEN);
++#ifdef WITH_GCRYPT
++    easy_md_compare(DB_SM3,sm3,HASH_SM3_LEN);
++#endif
+ 
+ #ifdef WITH_MHASH
+     easy_md_compare(DB_CRC32,crc32,HASH_CRC32_LEN);
+@@ -824,6 +827,11 @@ void strip_dbline(db_line* line)
+   if(!(attr&DB_SHA512)){
+     checked_free(line->sha512);
+   }
++#ifdef WITH_GCRYPT
++  if(!(attr&DB_SM3)){
++    checked_free(line->sm3);
++  }
++#endif
+ #ifdef WITH_ACL
+   if(!(attr&DB_ACL)){
+     if (line->acl)
+diff --git a/src/md.c b/src/md.c
+index d6a14ec..c7ffb88 100644
+--- a/src/md.c
++++ b/src/md.c
+@@ -28,7 +28,7 @@
+ #include <mhash.h>
+ #endif
+ #define HASH_HAVAL_LEN HASH_HAVAL256_LEN
+-
++#include "commandconf.h"
+ 
+ /*
+   It might be a good idea to construct a table, where these values are
+@@ -69,6 +69,10 @@ DB_ATTR_TYPE hash_gcrypt2attr(int i) {
+     r=DB_SHA512;
+     break;
+   }
++  case MD_SM3: {
++    r=DB_SM3;
++    break;
++  }
+   case GCRY_MD_CRC32: {
+     r=DB_CRC32;
+     break;
+@@ -182,6 +186,9 @@ int init_md(struct md_container* md) {
+ #ifdef WITH_MHASH
+   error(255,"Mhash library initialization\n");
+   for(i=0;i<=HASH_MHASH_COUNT;i++) {
++    if (i == MD_SM3 && check_dboo(db_sm3) == RETOK) {
++      continue;
++    }
+     if (((hash_mhash2attr(i)&HASH_USE_MHASH)&md->todo_attr)!=0) {
+       DB_ATTR_TYPE h=hash_mhash2attr(i);
+       error(255,"inserting %llu\n",h);
+@@ -297,6 +304,7 @@ int close_md(struct md_container* md) {
+   get_libgcrypt_hash(DB_RMD160,GCRY_MD_RMD160,rmd160,HASH_RMD160_LEN);
+   get_libgcrypt_hash(DB_SHA256,GCRY_MD_SHA256,sha256,HASH_SHA256_LEN);
+   get_libgcrypt_hash(DB_SHA512,GCRY_MD_SHA512,sha512,HASH_SHA512_LEN);
++  get_libgcrypt_hash(DB_SM3,MD_SM3,sm3,HASH_SM3_LEN);
+   get_libgcrypt_hash(DB_CRC32,GCRY_MD_CRC32,crc32,HASH_CRC32_LEN);
+   
+   /*.    There might be more hashes in the library. Add those here..   */
+@@ -371,5 +379,6 @@ void md2line(struct md_container* md,struct db_line* line) {
+ 
+   copyhash(DB_SHA256,sha256,HASH_SHA256_LEN);
+   copyhash(DB_SHA512,sha512,HASH_SHA512_LEN);
++  copyhash(DB_SM3,sm3,HASH_SM3_LEN);
+   copyhash(DB_WHIRLPOOL,whirlpool,HASH_WHIRLPOOL_LEN);
+ }
+-- 
+1.8.3.1
+
