@@ -1,6 +1,6 @@
 Name:       aide
 Version:    0.17.3
-Release:    2
+Release:    3
 Summary:    Advanced Intrusion Detection Environment
 License:    GPLv2+
 URL:        http://sourceforge.net/projects/aide
@@ -10,6 +10,8 @@ Source2:    aide.logrotate
 
 BuildRequires:  gcc make bison flex pcre-devel libgpg-error-devel libgcrypt-devel zlib-devel libcurl-devel
 BuildRequires:  libacl-devel libselinux-devel libattr-devel e2fsprogs-devel audit-libs-devel
+
+Patch0:    Add-sm3-algorithm-for-aide.patch 
 
 %description
 AIDE (Advanced Intrusion Detection Environment, [eyd]) is a file and directory integrity checker.
@@ -57,6 +59,12 @@ mkdir -p -m0700 %{buildroot}%{_localstatedir}/lib/aide
 %{_mandir}/*/*
 
 %changelog
+* Fri Dec 31 2021 wangcheng <wangcheng156@huawei.com> - 0.17.3-3
+- Type:enhancement
+- ID:NA
+- SUG:NA
+- DESC: add the sm3 crypt support
+
 * Thu Aug 19 2021 yixiangzhike <zhangxingliang3@huawei.com> - 0.17.3-2
 - Type:bugfix
 - ID:NA
