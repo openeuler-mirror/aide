@@ -1,0 +1,110 @@
+From 2c4670314b170e8946d9434904b501738a881404 Mon Sep 17 00:00:00 2001
+From: root <root@localhost.localdomain>
+Date: Fri, 31 Dec 2021 10:47:02 +0800
+Subject: [PATCH] Add sm3 algorithm for aide
+
+---
+ include/attributes.h     | 1 +
+ include/hashsum.h        | 1 +
+ src/attributes.c         | 1 +
+ src/db.c                 | 1 +
+ src/db_file.c            | 1 +
+ src/hashsum.c            | 2 ++
+ tests/check_attributes.c | 1 +
+ 7 files changed, 8 insertions(+)
+
+diff --git a/include/attributes.h b/include/attributes.h
+index 2473d79..3ccdeec 100644
+--- a/include/attributes.h
++++ b/include/attributes.h
+@@ -68,6 +68,7 @@ typedef enum {
+    attr_capabilities,
+    attr_stribog256,
+    attr_stribog512,
++   attr_sm3,
+    attr_unknown
+ } ATTRIBUTE;
+ 
+diff --git a/include/hashsum.h b/include/hashsum.h
+index d03ab9e..ebd6902 100644
+--- a/include/hashsum.h
++++ b/include/hashsum.h
+@@ -43,6 +43,7 @@ typedef enum {
+     hash_gostr3411_94,
+     hash_stribog256,
+     hash_stribog512,
++    hash_sm3,
+     num_hashes,
+ } HASHSUM;
+ 
+diff --git a/src/attributes.c b/src/attributes.c
+index 4a3dcb8..d3f328b 100644
+--- a/src/attributes.c
++++ b/src/attributes.c
+@@ -67,6 +67,7 @@ attributes_t attributes[] = {
+     { ATTR(attr_capabilities),   "caps",         "Caps",        "capabilities", 'C'   },
+     { ATTR(attr_stribog256),     "stribog256",   "STRIBOG256" ,  "stribog256",  '\0'  },
+     { ATTR(attr_stribog512),     "stribog512",   "STRIBOG512" ,  "stribog512",  '\0'  },
++    { ATTR(attr_sm3),            "sm3",          "SM3" ,         "sm3",         '\0'  },
+ };
+ 
+ DB_ATTR_TYPE num_attrs = sizeof(attributes)/sizeof(attributes_t);
+diff --git a/src/db.c b/src/db.c
+index d8b23a2..de1eb55 100644
+--- a/src/db.c
++++ b/src/db.c
+@@ -311,6 +311,7 @@ db_line* db_char2line(char** ss, database* db){
+     CHAR2HASH(gostr3411_94)
+     CHAR2HASH(stribog256)
+     CHAR2HASH(stribog512)
++    CHAR2HASH(sm3)
+     case attr_acl : {
+ #ifdef WITH_POSIX_ACL
+       char *tval = NULL;
+diff --git a/src/db_file.c b/src/db_file.c
+index 26cdd4b..86d5b31 100644
+--- a/src/db_file.c
++++ b/src/db_file.c
+@@ -627,6 +627,7 @@ int db_writeline_file(db_line* line,db_config* dbconf, url_t* url){
+     WRITE_HASHSUM(sha256)
+     WRITE_HASHSUM(sha512)
+     WRITE_HASHSUM(whirlpool)
++    WRITE_HASHSUM(sm3)
+     case attr_attr : {
+       db_write_attr(line->attr, dbconf->database_out.fp,i);
+       break;
+diff --git a/src/hashsum.c b/src/hashsum.c
+index aed8a84..c080344 100644
+--- a/src/hashsum.c
++++ b/src/hashsum.c
+@@ -42,6 +42,7 @@ hashsum_t hashsums[] = {
+     { attr_gostr3411_94,    32 },
+     { attr_stribog256,      32 },
+     { attr_stribog512,      64 },
++    { attr_sm3,             32 },
+ };
+ 
+ #ifdef WITH_MHASH
+@@ -81,6 +82,7 @@ int algorithms[] = { /* order must match hashsums array */
+   GCRY_MD_GOSTR3411_94,
+   GCRY_MD_STRIBOG256,
+   GCRY_MD_STRIBOG512,
++  GCRY_MD_SM3,
+ };
+ #endif
+ 
+diff --git a/tests/check_attributes.c b/tests/check_attributes.c
+index f7f0a3f..d75c0cb 100644
+--- a/tests/check_attributes.c
++++ b/tests/check_attributes.c
+@@ -69,6 +69,7 @@ static diff_attributes_t diff_attributes_tests[] = {
+     { 0, ATTR(attr_ftype), "ftype" },
+     { 0, ATTR(attr_e2fsattrs), "e2fsattrs" },
+     { 0, ATTR(attr_capabilities), "caps" },
++    { 0, ATTR(attr_sm3), "sm3" },
+ 
+     { 0, ATTR(attr_linkname)|ATTR(attr_perm), "l+p" },
+     { 0, ATTR(attr_ctime)|ATTR(attr_ftype), "c+ftype" },
+-- 
+2.27.0
+
