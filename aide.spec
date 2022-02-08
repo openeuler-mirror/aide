@@ -1,12 +1,14 @@
 Name:       aide
 Version:    0.17.3
-Release:    2
+Release:    3
 Summary:    Advanced Intrusion Detection Environment
 License:    GPLv2+
 URL:        http://sourceforge.net/projects/aide
 Source0:    http://github.com/aide/aide/releases/download/v%{version}/%{name}-%{version}.tar.gz
 Source1:    aide.conf
 Source2:    aide.logrotate
+
+Patch0:     backport-CVE-2021-45417-Precalculate-buffer-size-in-base64-functions.patch
 
 BuildRequires:  gcc make bison flex pcre-devel libgpg-error-devel libgcrypt-devel zlib-devel libcurl-devel
 BuildRequires:  libacl-devel libselinux-devel libattr-devel e2fsprogs-devel audit-libs-devel
@@ -57,6 +59,12 @@ mkdir -p -m0700 %{buildroot}%{_localstatedir}/lib/aide
 %{_mandir}/*/*
 
 %changelog
+* Tue Feb 8 2022 yixiangzhike <yixiangzhike007@163.com> - 0.17.3-3
+- Type:CVE
+- ID:CVE-2021-45417
+- SUG:NA
+- DESC: fix CVE-2021-45417
+
 * Thu Aug 19 2021 yixiangzhike <zhangxingliang3@huawei.com> - 0.17.3-2
 - Type:bugfix
 - ID:NA
