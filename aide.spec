@@ -1,6 +1,6 @@
 Name:       aide
 Version:    0.17.3
-Release:    4
+Release:    5
 Summary:    Advanced Intrusion Detection Environment
 License:    GPLv2+
 URL:        http://sourceforge.net/projects/aide
@@ -13,6 +13,8 @@ BuildRequires:  libacl-devel libselinux-devel libattr-devel e2fsprogs-devel audi
 
 Patch0:    Add-sm3-algorithm-for-aide.patch 
 Patch1:    backport-CVE-2021-45417-Precalculate-buffer-size-in-base64-functions.patch
+Patch2:    backport-Handle-malformed-database-lines.patch
+Patch3:    backport-Fix-handling-of-duplicate-database-entries.patch
 
 %description
 AIDE (Advanced Intrusion Detection Environment, [eyd]) is a file and directory integrity checker.
@@ -60,6 +62,12 @@ mkdir -p -m0700 %{buildroot}%{_localstatedir}/lib/aide
 %{_mandir}/*/*
 
 %changelog
+* Tue Feb 22 2022 yixiangzhike <yixiangzhike007@163.com> - 0.17.3-5
+- Type:bugfix
+- ID:NA
+- SUG:NA
+- DESC: handle malformed path and duplicate database entries
+
 * Tue Feb 8 2022 yixiangzhike <yixiangzhike007@163.com> - 0.17.3-4
 - Type:CVE
 - ID:CVE-2021-45417

@@ -1,0 +1,26 @@
+From 1067d1e1ce10dcd8f374e9d4295d39d75abf4958 Mon Sep 17 00:00:00 2001
+From: Hannes von Haugwitz <hannes@vonhaugwitz.com>
+Date: Sun, 20 Feb 2022 18:09:10 +0100
+Subject: [PATCH] Fix handling of duplicate database entries
+
+* closes: #122
+---
+ src/gen_list.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/gen_list.c b/src/gen_list.c
+index bf5ce2e..a1467f3 100644
+--- a/src/gen_list.c
++++ b/src/gen_list.c
+@@ -352,7 +352,7 @@ static void add_file_to_tree(seltree* tree,db_line* file,int db_flags, const dat
+   if(!node){
+     node=new_seltree_node(tree,file->filename,0,NULL);
+     log_msg(LOG_LEVEL_DEBUG, "added new node '%s' (%p) for '%s' (reason: new entry)", node->path, node, file->filename);
+-  } else if (db && db_flags&DB_NEW?node->new_data:node->old_data) {
++  } else if (db && node->checked&db_flags) {
+       LOG_DB_FORMAT_LINE(LOG_LEVEL_WARNING, duplicate database entry found for '%s' (skip line), file->filename)
+       free_db_line(file);
+       free(file);
+-- 
+1.8.3.1
+
