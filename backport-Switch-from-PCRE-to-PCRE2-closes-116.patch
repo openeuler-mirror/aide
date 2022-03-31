@@ -1,0 +1,376 @@
+From 367545d8e27aec9d0d407bafd8da81f5df42ce31 Mon Sep 17 00:00:00 2001
+From: Hannes von Haugwitz <hannes@vonhaugwitz.com>
+Date: Wed, 1 Dec 2021 21:17:44 +0100
+Subject: [PATCH] Switch from PCRE to PCRE2 (closes: #116)
+
+---
+ Makefile.am         |  4 ++--
+ README              |  2 +-
+ configure.ac        | 13 +++++--------
+ include/db_config.h |  6 ++++--
+ include/gen_list.h  |  3 ++-
+ include/rx_rule.h   |  6 ++++--
+ include/seltree.h   |  2 +-
+ src/aide.c          | 26 ++++++++++++++++++++++----
+ src/commandconf.c   |  6 +-----
+ src/conf_eval.c     | 25 +++++++++++++++++--------
+ src/gen_list.c      | 10 +++++-----
+ src/seltree.c       | 32 +++++++++++++++++++++++++-------
+ 12 files changed, 89 insertions(+), 46 deletions(-)
+
+diff --git a/Makefile.am b/Makefile.am
+index 4744ec4..21a552e 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -62,7 +62,7 @@ if USE_CURL
+ aide_SOURCES += include/fopen.h src/fopen.c
+ endif
+ 
+-aide_LDADD = -lm @PCRELIB@ @CRYPTLIB@ @ACLLIB@ @SELINUXLIB@ @AUDITLIB@ @ATTRLIB@ @E2FSATTRSLIB@ @ELFLIB@ @CAPLIB@ ${CURL_LIBS}
++aide_LDADD = -lm ${PCRE2_LIBS} @CRYPTLIB@ @ACLLIB@ @SELINUXLIB@ @AUDITLIB@ @ATTRLIB@ @E2FSATTRSLIB@ @ELFLIB@ @CAPLIB@ ${CURL_LIBS}
+ 
+ if HAVE_CHECK
+ TESTS				= check_aide
+@@ -71,7 +71,7 @@ check_aide_SOURCES	= tests/check_aide.c tests/check_aide.h \
+ 					  tests/check_attributes.c src/attributes.c \
+ 					  src/log.c src/util.c
+ check_aide_CFLAGS	= -I$(top_srcdir)/include $(CHECK_CFLAGS)
+-check_aide_LDADD	= -lm @PCRELIB@ @CRYPTLIB@ $(CHECK_LIBS)
++check_aide_LDADD	= -lm ${PCRE2_LIBS} @CRYPTLIB@ $(CHECK_LIBS)
+ endif # HAVE_CHECK
+ 
+ AM_CFLAGS = @AIDE_DEFS@ -W -Wall -g
+diff --git a/README b/README
+index 079d4b2..3526065 100644
+--- a/README
++++ b/README
+@@ -117,7 +117,7 @@
+        o  GNU yacc (bison).
+        o  GNU make.
+        o  pkg-config
+-       o  PCRE library
++       o  PCRE2 library
+        o  Mhash (optional, but highly recommended). Mhash is currently
+           available from http://mhash.sourceforge.net/. A static version of
+           libmhash needs to be build using the --enable-static=yes
+diff --git a/configure.ac b/configure.ac
+index ae9e6b9..a741a1b 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -328,15 +328,12 @@ fi
+ 
+ AC_CHECK_HEADERS(syslog.h inttypes.h fcntl.h ctype.h)
+ 
+-PCRELIB="-lpcre"
+-if test "$aide_static_choice" == "yes"; then
+-    PCRELIB="$PCRELIB -pthread"
++if test "$aide_static_choice" == "yes"; then
++   PKG_CHECK_MODULES_STATIC(PCRE2, [libpcre2-8], , [AC_MSG_RESULT([libpcre2-8 not found by pkg-config - Try to add directory containing libpcre2-8.pc to PKG_CONFIG_PATH environment variable])])
++else
++   PKG_CHECK_MODULES(PCRE2, [libpcre2-8], , [AC_MSG_RESULT([libpcre2-8 not found by pkg-config - Try to add directory containing libpcre2-8.pc to PKG_CONFIG_PATH environment variable])])
+ fi
+-AC_CHECK_LIB(pcre, pcre_exec, [
+-    compoptionstring="${compoptionstring}WITH_PCRE\\n"
+-    ], [AC_MSG_ERROR([You don't have pcre library properly installed.])]
+-    )
+-AC_SUBST(PCRELIB)
++compoptionstring="${compoptionstring}WITH_PCRE2\\n"
+ 
+ AC_ARG_WITH([locale],
+ 	[AC_HELP_STRING([--with-locale],
+diff --git a/include/db_config.h b/include/db_config.h
+index dbe0138..49fa384 100644
+--- a/include/db_config.h
++++ b/include/db_config.h
+@@ -28,7 +28,8 @@
+ #include "types.h"
+ #include <unistd.h>
+ #include <stdio.h>
+-#include <pcre.h>
++#define PCRE2_CODE_UNIT_WIDTH 8
++#include <pcre2.h>
+ 
+ #define E2O(n) (1<<n)
+ 
+@@ -260,7 +261,8 @@ typedef struct db_config {
+   int root_prefix_length;
+ 
+   char* limit;
+-  pcre* limit_crx;
++  pcre2_code* limit_crx;
++  pcre2_match_data* limit_md;
+ 
+   struct seltree* tree;
+ 
+diff --git a/include/gen_list.h b/include/gen_list.h
+index 22269bc..96e4f22 100644
+--- a/include/gen_list.h
++++ b/include/gen_list.h
+@@ -21,7 +21,8 @@
+ 
+ #ifndef _GEN_LIST_H_INCLUDED
+ #define _GEN_LIST_H_INCLUDED
+-#include <pcre.h>
++#define PCRE2_CODE_UNIT_WIDTH 8
++#include <pcre2.h>
+ #include "seltree.h"
+ #include "list.h"
+ #include <stdbool.h>
+diff --git a/include/rx_rule.h b/include/rx_rule.h
+index fa8bdd3..196a5b7 100644
+--- a/include/rx_rule.h
++++ b/include/rx_rule.h
+@@ -25,7 +25,8 @@
+ #include "attributes.h"
+ #include "seltree_struct.h"
+ #include <sys/stat.h>
+-#include <pcre.h>
++#define PCRE2_CODE_UNIT_WIDTH 8
++#include <pcre2.h>
+ 
+ #define RESTRICTION_TYPE unsigned int
+ #define FT_REG   (1U<<0) /* file */
+@@ -41,7 +42,8 @@
+ 
+ typedef struct rx_rule {
+   char* rx; /* Regular expression in text form */
+-  pcre* crx; /* Compiled regexp */
++  pcre2_code* crx; /* Compiled regexp */
++  pcre2_match_data *md;
+   DB_ATTR_TYPE attr; /* Which attributes to save */
+   seltree *node;
+   char *config_filename;
+diff --git a/include/seltree.h b/include/seltree.h
+index c4e6f05..61f9a8c 100644
+--- a/include/seltree.h
++++ b/include/seltree.h
+@@ -32,7 +32,7 @@ seltree* new_seltree_node(seltree*, char*, int, rx_rule*);
+ 
+ seltree* get_seltree_node(seltree* ,char*);
+ 
+-rx_rule * add_rx_to_tree(char *, RESTRICTION_TYPE, int, seltree *, const char **, int *);
++rx_rule * add_rx_to_tree(char *, RESTRICTION_TYPE, int, seltree *, int, char *, char *);
+ 
+ int check_seltree(seltree *, char *, RESTRICTION_TYPE, rx_rule* *);
+ 
+diff --git a/src/aide.c b/src/aide.c
+index 12ecfe1..741e1cd 100644
+--- a/src/aide.c
++++ b/src/aide.c
+@@ -283,13 +283,31 @@ static void read_param(int argc,char**argv)
+ 	break;
+       }
+       case 'l': {
+-                const char* pcre_error;
+-                int pcre_erroffset;
++                int pcre2_errorcode;
++                PCRE2_SIZE pcre2_erroffset;
+                 conf->limit=checked_malloc(strlen(optarg)+1);
+                 strcpy(conf->limit,optarg);
+-                if((conf->limit_crx=pcre_compile(conf->limit, PCRE_ANCHORED, &pcre_error, &pcre_erroffset, NULL)) == NULL) {
+-                    INVALID_ARGUMENT("--limit", error in regular expression '%s' at %i: %s, conf->limit, pcre_erroffset, pcre_error)
++                if((conf->limit_crx=pcre2_compile((PCRE2_SPTR) conf->limit, PCRE2_ZERO_TERMINATED, PCRE2_UTF|PCRE2_ANCHORED, &pcre2_errorcode, &pcre2_erroffset, NULL)) == NULL) {
++                    PCRE2_UCHAR pcre2_error[128];
++                    pcre2_get_error_message(pcre2_errorcode, pcre2_error, 128);
++                    INVALID_ARGUMENT("--limit", error in regular expression '%s' at %zu: %s, conf->limit, pcre2_erroffset, pcre2_error)
++
++                }
++                conf->limit_md = pcre2_match_data_create_from_pattern(conf->limit_crx, NULL);
++                if (conf->limit_md == NULL) {
++                    log_msg(LOG_LEVEL_ERROR, "pcre2_match_data_create_from_pattern: failed to allocate memory");
++                    exit(EXIT_FAILURE);
++                }
++
++                int pcre2_jit = pcre2_jit_compile(conf->limit_crx, PCRE2_JIT_PARTIAL_SOFT);
++                if (pcre2_jit < 0) {
++                    PCRE2_UCHAR pcre2_error[128];
++                    pcre2_get_error_message(pcre2_jit, pcre2_error, 128);
++                    log_msg(LOG_LEVEL_NOTICE, "JIT compilation for limit '%s' failed: %s (fall back to interpreted matching)", conf->limit, pcre2_error);
++                } else {
++                    log_msg(LOG_LEVEL_DEBUG, "JIT compilation for limit '%s' successful", conf->limit);
+                 }
++
+                 log_msg(LOG_LEVEL_INFO,_("(--limit): set limit to '%s'"), conf->limit);
+             break;
+       }
+diff --git a/src/commandconf.c b/src/commandconf.c
+index edec4f9..a3b0e27 100644
+--- a/src/commandconf.c
++++ b/src/commandconf.c
+@@ -307,11 +307,7 @@ bool add_rx_rule_to_tree(char* rx, RESTRICTION_TYPE restriction, DB_ATTR_TYPE at
+     char *attr_str = NULL;
+     char *rs_str = NULL;
+ 
+-    const char* rule_error;
+-    int         rule_erroffset;
+-
+-    if ((r = add_rx_to_tree(rx, restriction, type, tree, &rule_error, &rule_erroffset)) == NULL) {
+-        log_msg(LOG_LEVEL_ERROR, "%s:%d:%i: error in rule '%s': %s (line: '%s')", filename, linenumber, rule_erroffset, rx, rule_error, linebuf);
++    if ((r = add_rx_to_tree(rx, restriction, type, tree, linenumber, filename, linebuf)) == NULL) {
+         retval = false;
+     }else {
+         r->config_linenumber = linenumber;
+diff --git a/src/conf_eval.c b/src/conf_eval.c
+index 460e530..7d9b182 100644
+--- a/src/conf_eval.c
++++ b/src/conf_eval.c
+@@ -512,14 +512,21 @@ static void include_directory(const char* dir, const char* rx, bool execute, int
+     struct dirent **namelist;
+     int n;
+ 
+-    const char* pcre_error;
+-    int pcre_erroffset;
+-    pcre* crx;
+-
+-    if((crx = pcre_compile(rx, PCRE_UTF8, &pcre_error, &pcre_erroffset, NULL)) == NULL) {
+-        LOG_CONFIG_FORMAT_LINE(LOG_LEVEL_ERROR, '%s': error in regular expression '%s' at %i: %s, execute?"@@x_include":"@@include", rx, pcre_erroffset, pcre_error)
++    int pcre2_errorcode;
++    PCRE2_SIZE pcre2_erroffset;
++    pcre2_code* crx;
++
++    if((crx = pcre2_compile((PCRE2_SPTR) rx, PCRE2_ZERO_TERMINATED, PCRE2_UTF, &pcre2_errorcode, &pcre2_erroffset, NULL)) == NULL) {
++        PCRE2_UCHAR pcre2_error[128];
++        pcre2_get_error_message(pcre2_errorcode, pcre2_error, 128);
++        LOG_CONFIG_FORMAT_LINE(LOG_LEVEL_ERROR, '%s': error in regular expression '%s' at %i: %s, execute?"@@x_include":"@@include", rx, pcre2_erroffset, pcre2_error)
+         exit(INVALID_CONFIGURELINE_ERROR);
+     }
++    pcre2_match_data *match_data = pcre2_match_data_create_from_pattern(crx, NULL);
++    if (match_data == NULL) {
++        log_msg(LOG_LEVEL_ERROR, "pcre2_match_data_create_from_pattern: failed to allocate memory");
++        exit(EXIT_FAILURE);
++    }
+ 
+     struct stat fs;
+ 
+@@ -547,7 +554,8 @@ static void include_directory(const char* dir, const char* rx, bool execute, int
+             exit(INVALID_CONFIGURELINE_ERROR);
+         }
+         if (S_ISREG(fs.st_mode)) {
+-            if(pcre_exec(crx, NULL, namelist[i]->d_name, strlen(namelist[i]->d_name), 0, 0, NULL, 0) < 0) {
++            int match=pcre2_match(crx, (PCRE2_SPTR) namelist[i]->d_name, PCRE2_ZERO_TERMINATED, 0, 0, match_data, NULL);
++            if(match < 0) {
+                 log_msg(LOG_LEVEL_DEBUG,"%s: skip '%s' (reason: file name does not match regex '%s')", dir, namelist[i]->d_name, rx);
+             } else {
+                 int exec = execute && S_IXUSR&fs.st_mode;
+@@ -565,7 +573,8 @@ static void include_directory(const char* dir, const char* rx, bool execute, int
+         free(namelist[i]);
+     }
+     free(namelist);
+-    free(crx);
++    pcre2_match_data_free(match_data);
++    pcre2_code_free(crx);
+ }
+ 
+ static void eval_include_statement(include_statement statement, int include_depth, int linenumber, char *filename, char* linebuf) {
+diff --git a/src/gen_list.c b/src/gen_list.c
+index 98b437c..9c3aed5 100644
+--- a/src/gen_list.c
++++ b/src/gen_list.c
+@@ -32,7 +32,8 @@
+ #include <sys/types.h>
+ #include <errno.h>
+ #include <time.h>
+-#include <pcre.h>
++#define PCRE2_CODE_UNIT_WIDTH 8
++#include <pcre2.h>
+ 
+ #include "attributes.h"
+ #include "list.h"
+@@ -488,13 +489,12 @@ static void add_file_to_tree(seltree* tree,db_line* file,int db)
+ int check_rxtree(char* filename,seltree* tree, rx_rule* *rule, RESTRICTION_TYPE file_type, bool dry_run)
+ {
+   log_msg(LOG_LEVEL_RULE, "\u252c process '%s' (filetype: %c)", filename, get_restriction_char(file_type));
+-  int retval=0;
+ 
+   if(conf->limit!=NULL) {
+-      retval=pcre_exec(conf->limit_crx, NULL, filename, strlen(filename), 0, PCRE_PARTIAL_SOFT, NULL, 0);
+-      if (retval >= 0) {
++      int match=pcre2_match(conf->limit_crx, (PCRE2_SPTR) filename, PCRE2_ZERO_TERMINATED, 0, PCRE2_PARTIAL_SOFT, conf->limit_md, NULL);
++      if (match >= 0) {
+           log_msg(LOG_LEVEL_DEBUG, "\u2502 '%s' does match limit '%s'", filename, conf->limit);
+-      } else if (retval == PCRE_ERROR_PARTIAL) {
++      } else if (match == PCRE2_ERROR_PARTIAL) {
+           if(file_type&FT_DIR && get_seltree_node(tree,filename)==NULL){
+               seltree* node = new_seltree_node(tree,filename,0,NULL);
+               log_msg(LOG_LEVEL_DEBUG, "added new node '%s' (%p) for '%s' (reason: partial limit match)", node->path, node, filename);
+diff --git a/src/seltree.c b/src/seltree.c
+index 7819b06..bc8b371 100644
+--- a/src/seltree.c
++++ b/src/seltree.c
+@@ -260,7 +260,7 @@ seltree *init_tree() {
+     return node;
+ }
+ 
+-rx_rule * add_rx_to_tree(char * rx, RESTRICTION_TYPE restriction, int rule_type, seltree *tree, const char **rule_error, int *rule_erroffset) {
++rx_rule * add_rx_to_tree(char * rx, RESTRICTION_TYPE restriction, int rule_type, seltree *tree, int linenumber, char* filename, char* linebuf) {
+     rx_rule* r = NULL;
+     seltree *curnode = NULL;
+     char *rxtok = NULL;
+@@ -275,17 +275,36 @@ rx_rule * add_rx_to_tree(char * rx, RESTRICTION_TYPE restriction, int rule_type,
+     r->config_linenumber = -1;
+     r->attr = 0;
+ 
+-    if((r->crx=pcre_compile(r->rx, PCRE_ANCHORED|PCRE_UTF8, rule_error, rule_erroffset, NULL)) == NULL) {
++    int pcre2_errorcode;
++    PCRE2_SIZE pcre2_erroffset;
++
++    if((r->crx=pcre2_compile((PCRE2_SPTR) r->rx, PCRE2_ZERO_TERMINATED, PCRE2_UTF|PCRE2_ANCHORED, &pcre2_errorcode, &pcre2_erroffset, NULL)) == NULL) {
++        PCRE2_UCHAR pcre2_error[128];
++        pcre2_get_error_message(pcre2_errorcode, pcre2_error, 128);
++        log_msg(LOG_LEVEL_ERROR, "%s:%d:%i: error in rule '%s': %s (line: '%s')", filename, linenumber, pcre2_erroffset, rx, pcre2_error, linebuf);
+         free(r);
+         return NULL;
+     } else {
++        r->md = pcre2_match_data_create_from_pattern(r->crx, NULL);
++        if (r->md == NULL) {
++            log_msg(LOG_LEVEL_ERROR, "pcre2_match_data_create_from_pattern: failed to allocate memory");
++            exit(EXIT_FAILURE);
++        }
++        int pcre2_jit = pcre2_jit_compile(r->crx, PCRE2_JIT_PARTIAL_SOFT);
++        if (pcre2_jit < 0) {
++            PCRE2_UCHAR pcre2_error[128];
++            pcre2_get_error_message(pcre2_jit, pcre2_error, 128);
++            log_msg(LOG_LEVEL_NOTICE, "JIT compilation for regex '%s' failed: %s (fall back to interpreted matching)", r->rx, pcre2_error);
++        } else {
++            log_msg(LOG_LEVEL_DEBUG, "JIT compilation for reges '%s' successful", r->rx);
++        }
++
+         rxtok=strrxtok(r->rx);
+         curnode=get_seltree_node(tree,rxtok);
+ 
+         for(size_t i=1;i < strlen(rxtok); ++i){
+             if (rxtok[i] == '/' && rxtok[i-1] == '/') {
+-                *rule_error = "invalid double slash" ;
+-                *rule_erroffset = i;
++                log_msg(LOG_LEVEL_ERROR, "%s:%d:1: error in rule '%s': invalid double slash (line: '%s')", filename, linenumber, rx, linebuf);
+                 free(r);
+                 return NULL;
+             }
+@@ -323,14 +342,13 @@ static int check_list_for_match(list* rxrlist,char* text, rx_rule* *rule, RESTRI
+   list* r=NULL;
+   int retval=NO_RULE_MATCH;
+   int pcre_retval;
+-  pcre_extra *pcre_extra = NULL;
+   char *rs_str = NULL;
+   for(r=rxrlist;r;r=r->next){
+       rx_rule *rx = (rx_rule*)r->data;
+ 
+       if (!(unrestricted_only && rx->restriction)) {
+ 
+-      pcre_retval=pcre_exec((pcre*)rx->crx, pcre_extra, text, strlen(text), 0, PCRE_PARTIAL_SOFT, NULL, 0);
++      pcre_retval = pcre2_match(rx->crx, (PCRE2_SPTR) text, PCRE2_ZERO_TERMINATED, 0, PCRE2_PARTIAL_SOFT, rx->md, NULL);
+       if (pcre_retval >= 0) {
+           if (!rx->restriction || file_type&rx->restriction) {
+                   *rule = rx;
+@@ -343,7 +361,7 @@ static int check_list_for_match(list* rxrlist,char* text, rx_rule* *rule, RESTRI
+               free(rs_str);
+               retval=PARTIAL_RULE_MATCH;
+           }
+-      } else if (pcre_retval == PCRE_ERROR_PARTIAL) {
++      } else if (pcre_retval == PCRE2_ERROR_PARTIAL) {
+           LOG_MATCH(LOG_LEVEL_RULE, "\u2502", partially matches regex '%s', rx->rx)
+           retval=PARTIAL_RULE_MATCH;
+       } else {
+-- 
+1.8.3.1
+

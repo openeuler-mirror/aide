@@ -1,6 +1,6 @@
 Name:       aide
 Version:    0.17.3
-Release:    5
+Release:    6
 Summary:    Advanced Intrusion Detection Environment
 License:    GPLv2+
 URL:        http://sourceforge.net/projects/aide
@@ -8,13 +8,16 @@ Source0:    http://github.com/aide/aide/releases/download/v%{version}/%{name}-%{
 Source1:    aide.conf
 Source2:    aide.logrotate
 
-BuildRequires:  gcc make bison flex pcre-devel libgpg-error-devel libgcrypt-devel zlib-devel libcurl-devel
+BuildRequires:  gcc make bison flex pcre2-devel libgpg-error-devel libgcrypt-devel zlib-devel libcurl-devel
 BuildRequires:  libacl-devel libselinux-devel libattr-devel e2fsprogs-devel audit-libs-devel
+# command autoreconf needs autoconf and automake
+BuildRequires:  autoconf automake
 
 Patch0:    Add-sm3-algorithm-for-aide.patch 
 Patch1:    backport-CVE-2021-45417-Precalculate-buffer-size-in-base64-functions.patch
 Patch2:    backport-Handle-malformed-database-lines.patch
 Patch3:    backport-Fix-handling-of-duplicate-database-entries.patch
+Patch4:    backport-Switch-from-PCRE-to-PCRE2-closes-116.patch
 
 %description
 AIDE (Advanced Intrusion Detection Environment, [eyd]) is a file and directory integrity checker.
@@ -27,6 +30,9 @@ Once this database is initialized it can be used to verify the integrity of the 
 %autosetup -n %{name}-%{version} -p1
 
 %build
+# add command autoreconf to regenerate configure file
+# because, the patch Switch-from-PCRE-to-PCRE2 changed configure.ac file
+autoreconf -ivf
 %configure  --disable-static --with-config_file=%{_sysconfdir}/aide.conf --with-gcrypt --with-zlib \
             --with-curl --with-posix-acl --with-selinux  --with-xattr --with-e2fsattrs --with-audit
 make %{?_smp_mflags}
@@ -62,6 +68,12 @@ mkdir -p -m0700 %{buildroot}%{_localstatedir}/lib/aide
 %{_mandir}/*/*
 
 %changelog
+* Thu Mar 31 2022 yixiangzhike <yixiangzhike007@163.com> - 0.17.3-6
+- Type:bugfix
+- ID:NA
+- SUG:NA
+- DESC: switch from PCRE to PCRE2
+
 * Tue Feb 22 2022 yixiangzhike <yixiangzhike007@163.com> - 0.17.3-5
 - Type:bugfix
 - ID:NA
