@@ -1,6 +1,6 @@
 Name:       aide
-Version:    0.17.3
-Release:    6
+Version:    0.17.4
+Release:    1
 Summary:    Advanced Intrusion Detection Environment
 License:    GPLv2+
 URL:        http://sourceforge.net/projects/aide
@@ -13,10 +13,10 @@ BuildRequires:  libacl-devel libselinux-devel libattr-devel e2fsprogs-devel audi
 # command autoreconf needs autoconf and automake
 BuildRequires:  autoconf automake
 
+%ifnarch riscv64
 Patch0:    Add-sm3-algorithm-for-aide.patch 
-Patch1:    backport-CVE-2021-45417-Precalculate-buffer-size-in-base64-functions.patch
+%endif
 Patch2:    backport-Handle-malformed-database-lines.patch
-Patch3:    backport-Fix-handling-of-duplicate-database-entries.patch
 Patch4:    backport-Switch-from-PCRE-to-PCRE2-closes-116.patch
 
 %description
@@ -68,6 +68,11 @@ mkdir -p -m0700 %{buildroot}%{_localstatedir}/lib/aide
 %{_mandir}/*/*
 
 %changelog
+* Wed Apr 13 2022 YukariChiba <i@0x7f.cc> - 0.17.4-1
+- Upgrade version to 0.17.4
+- Temporary disable SM3 patch for RISC-V
+- Merged patches: 175d1f2 and 1067d1e from upstream
+
 * Thu Mar 31 2022 yixiangzhike <yixiangzhike007@163.com> - 0.17.3-6
 - Type:bugfix
 - ID:NA
